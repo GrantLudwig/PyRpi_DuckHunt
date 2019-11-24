@@ -37,6 +37,7 @@ death = Image(Point(0, 0), deadDucks[duckIndex])
 message = Text(Point(100, 100), "")
 scoreText = Text(Point(100, 50), "")
 score = 0
+playing = False
 
 win = GraphWin("Target Practice", SCREEN_WIDTH, SCREEN_HEIGHT, autoflush=False)
 
@@ -68,12 +69,17 @@ def shoot(channel):
     global target
     global kill
     global score
-    aimCenter = aim.getCenter()
-    targetCenter = target.getAnchor()
+    global playing
     
-    if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (30):
-        kill = True
-        score += 1
+    if not playing:
+        playing = True
+    else:
+        aimCenter = aim.getCenter()
+        targetCenter = target.getAnchor()
+        
+        if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (30):
+            kill = True
+            score += 1
 
 def main():
     global aim
@@ -82,6 +88,7 @@ def main():
     global kill
     global score
     global death
+    global playing
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
@@ -106,7 +113,8 @@ def main():
     
     end = time.time() + 30
     deathTime = 0
-    playing = True
+    while not playing: # need to press button to begin
+        deathTime = 0 # need something so loop runs
     while(playing):
         timeLeft = round(end - time.time(), 2)
         if timeLeft <= 0:
