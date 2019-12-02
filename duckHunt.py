@@ -17,6 +17,7 @@ import RPi.GPIO as GPIO # Raspberry Pi GPIO library
 import random
 import math
 import time
+import threading
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 450
@@ -33,15 +34,18 @@ RoundDucks = []
 ActiveDucks = []
 duckIndex = 0
 
-aim = Circle(Point(250, 250), 15)
-innerAim = Circle(Point(250, 250), 5)
-#target = Image(Point(0, 0), ducks[duckIndex])
-#death = Image(Point(0, 0), deadDucks[duckIndex])
-message = Text(Point(300, 100), "")
-scoreText = Text(Point(100, 50), "")
-roundText = Text(Point(100, 100), "")
-ducksMissedText = Text(Point(100, 150), "")
-shotsTakenText = Text(Point(100, 200), "")
+GPIO_A = 12
+GPIO_B = 13
+GPIO_C = 6
+GPIO_D = 16
+GPIO_E = 17
+GPIO_F = 27
+GPIO_G = 7
+GPIO_D1 = 22
+GPIO_D2 = 25
+GPIO_D3 = 24
+GPIO_D4 = 23
+GPIO_COLON = 8
 
 NUM_DUCKS_PER_PERIOD = 2
 NUM_PERIODS = 5
@@ -51,6 +55,18 @@ TIME_BETWEEN_DUCKS = 1 # seconds
 TIME_BETWEEN_PERIODS = 1 # seconds
 TIME_BETWEEN_ROUNDS = 1 # seconds
 SHOTS_PER_PERIOD = 3
+SPREAD_RADIUS = 100
+
+aim = Circle(Point(250, 250), SPREAD_RADIUS)
+innerAim = Circle(Point(250, 250), 5)
+#target = Image(Point(0, 0), ducks[duckIndex])
+#death = Image(Point(0, 0), deadDucks[duckIndex])
+message = Text(Point(300, 100), "")
+scoreText = Text(Point(100, 50), "")
+roundText = Text(Point(100, 100), "")
+ducksMissedText = Text(Point(100, 150), "")
+shotsTakenText = Text(Point(100, 200), "")
+
 shotsTakenInPeriod = 0
 roundNum = 0
 currentPeriod = 1
@@ -65,6 +81,24 @@ centerX = round(SCREEN_WIDTH / 2)
 centerY = round(SCREEN_HEIGHT / 2)
 unDrawDuck = []
 kill = False
+
+clockOutputLock = threading.Lock()
+
+# A B C D E F G
+numberMap = {" ":(0,0,0,0,0,0,0),
+			"0":(1,1,1,1,1,1,0),
+			"1":(0,1,1,0,0,0,0),
+			"2":(1,1,0,1,1,0,1),
+			"3":(1,1,1,1,0,0,1),
+			"4":(0,1,1,0,0,1,1),
+			"5":(1,0,1,1,0,1,1),
+			"6":(1,0,1,1,1,1,1),
+			"7":(1,1,1,0,0,0,0),
+			"8":(1,1,1,1,1,1,1),
+			"9":(1,1,1,1,0,1,1)}
+            
+CLOCK_OUTPUT_SIZE = 4
+clockOutput = "0000"
 
 playing = False
 
@@ -154,7 +188,6 @@ def PeriodCheck():
     if not isADuckActive and not lastPeriodSet:
         for duck in ActiveDucks:
                 if duck.isAlive():
-                    ducksMissed += 1
                     unDrawDuck.append(duck)
                     FlyAway()
         timeAtLastPeriod = time.time()
@@ -202,24 +235,58 @@ def shoot(channel):
             aimCenter = aim.getCenter()
             for target in ActiveDucks:
                 targetCenter = target.duckGraphic().getAnchor()
-                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (30) and not target.FlyingAway:
+                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (SPREAD_RADIUS + 5) and not target.FlyingAway:
                     target.killed()
                     unDrawDuck.append(target)
                     roundScore += 1
                     totalScore += 1
             shotsTakenInPeriod += 1
+            
+def updateScore():
+    global clockOutput
+    global totalScore
+    
+    if int(clockOutput) != totalScore:
+        temp = ""
+        for i in range(CLOCK_OUTPUT_SIZE - len(str(totalScore))):
+            temp += "0"
+        temp += str(totalScore)
+        clockOutputLock.acquire()        
+        clockOutput = temp
+        clockOutputLock.release()
+            
+def scoreLoop():
+    global numberMap
+    global clockOutput
+    global segments
+    global digits
+    
+    GPIO.setwarnings(False) # Ignore warnings
+    GPIO.setmode(GPIO.BCM) # Use BCM Pin numbering
+    
+    while(True):
+        if not clockOutputLock.locked():
+            for i in range(len(digits)):
+                for j in range(len(segments)):
+                    GPIO.output(segments[j], numberMap[clockOutput[i]][j])
+                GPIO.output(digits[i], 0)
+                time.sleep(0.001)
+                GPIO.output(digits[i], 1)
 
 def main():
     global aim
     global innerAim
     global target
     global totalScore
+    global roundScore
     global unDrawDuck
     global playing
     global ActiveDucks
+    global ducksMissed
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
+    threading.Thread(target=scoreLoop).start()
     win.setCoords(SCREEN_WIDTH, 0, 0, SCREEN_HEIGHT)
     win.setBackground("Grey")
     
@@ -251,9 +318,10 @@ def main():
     
     dog = Image(Point(centerX,centerY), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
     
-    SetupRound()
     while not playing: # need to press button to begin
         deathTime = 0 # need something so loop runs
+        
+    SetupRound()
     while(playing):
         #timeLeft = round(end - time.time(), 2)
         if ducksMissed >= 10:
@@ -270,6 +338,8 @@ def main():
             
             if RoundCheck():
                 if time.time() - timeAtLastRound > TIME_BETWEEN_ROUNDS and len(unDrawDuck) == 0:
+                    if roundScore == NUM_DUCKS_PER_ROUND:
+                        totalScore += 10
                     SetupRound()
             
             CanClear = True
@@ -280,6 +350,7 @@ def main():
                         unDraw.duckGraphic().undraw()
                     
                     elif unDraw.duckGraphic().getAnchor().y > SCREEN_HEIGHT + 20:
+                        ducksMissed += 1
                         unDraw.FlyingAway = False
                         unDraw.duckGraphic().undraw()
                     else:
@@ -298,7 +369,7 @@ def main():
             aim.undraw()
             innerAim.undraw()
             
-            aim = Circle(Point(getXPosition(), getYPosition()), 15)
+            aim = Circle(Point(getXPosition(), getYPosition()), SPREAD_RADIUS)
             innerAim = Circle(Point(getXPosition(), getYPosition()), 5)
             
             aim.setOutline("Red")
@@ -327,6 +398,8 @@ def main():
                     # death.undraw()
                 # except:
                     # print()
+        
+        updateScore()
         update(60)
     
     time.sleep(5)
@@ -338,6 +411,19 @@ GPIO.setmode(GPIO.BCM) # Use BCM Pin numbering
 GPIO.setup(26, GPIO.IN)
 
 GPIO.add_event_detect(26, GPIO.FALLING, callback=shoot, bouncetime=300)
+
+segments = (GPIO_A, GPIO_B, GPIO_C, GPIO_D, GPIO_E, GPIO_F, GPIO_G)
+digits = (GPIO_D1, GPIO_D2, GPIO_D3, GPIO_D4)
+
+# sets all segments off
+for segment in segments:
+	GPIO.setup(segment, GPIO.OUT)
+	GPIO.output(segment, 0)
+	
+# sets all digits to 1, aka not grounded
+for digit in digits:
+	GPIO.setup(digit, GPIO.OUT)
+	GPIO.output(digit, 1)
 	
 # create the spi bus
 spi = busio.SPI(clock=board.SCK, MISO=board.MISO, MOSI=board.MOSI)
