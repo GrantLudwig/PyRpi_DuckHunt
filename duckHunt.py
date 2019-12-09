@@ -30,6 +30,8 @@ ducks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuck.png",
 deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
                 "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuckDead.png",
                 "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png")
+background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
+
 RoundDucks = []
 ActiveDucks = []
 duckIndex = 0
@@ -283,12 +285,15 @@ def main():
     global playing
     global ActiveDucks
     global ducksMissed
+    global background
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
     threading.Thread(target=scoreLoop).start()
     win.setCoords(SCREEN_WIDTH, 0, 0, SCREEN_HEIGHT)
     win.setBackground("Grey")
+    backgroundImage = Image(Point((SCREEN_WIDTH / 2), SCREEN_HEIGHT / 2), background)
+    backgroundImage.draw(win)
     
     message.setTextColor("white")
     message.setSize(20)
