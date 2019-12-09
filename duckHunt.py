@@ -31,6 +31,7 @@ deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
                 "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuckDead.png",
                 "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png")
 background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
+bulletImage = "/home/ludwigg/Python/PyRpi_DuckHunt/bullet.png"
 
 RoundDucks = []
 ActiveDucks = []
@@ -64,10 +65,10 @@ innerAim = Circle(Point(250, 250), 5)
 #target = Image(Point(0, 0), ducks[duckIndex])
 #death = Image(Point(0, 0), deadDucks[duckIndex])
 message = Text(Point(300, 100), "")
-scoreText = Text(Point(100, 50), "")
+scoreText = Text(Point(117, 30), "")
 roundText = Text(Point(100, 100), "")
 ducksMissedText = Text(Point(100, 150), "")
-shotsTakenText = Text(Point(100, 200), "")
+shotsTakenText = Text(Point(SCREEN_WIDTH - 62, 40), "")
 
 shotsTakenInPeriod = 0
 roundNum = 0
@@ -82,6 +83,7 @@ lastRoundSet = False
 centerX = round(SCREEN_WIDTH / 2)
 centerY = round(SCREEN_HEIGHT / 2)
 unDrawDuck = []
+bullets = []
 kill = False
 
 clockOutputLock = threading.Lock()
@@ -105,6 +107,10 @@ clockOutput = "0000"
 playing = False
 
 win = GraphWin("Duck Hunt", SCREEN_WIDTH, SCREEN_HEIGHT, autoflush=False)
+
+# setup bullets
+for i in range(SHOTS_PER_PERIOD):
+    bullets.append(Image(Point(SCREEN_WIDTH - (32 + (30 * i)), 22), bulletImage))
 
 def getXPosition():
     global chan
@@ -160,6 +166,7 @@ def BeginPeriod():
     global RoundDucks
     global ActiveDucks
     global lastPeriodSet
+    global bullets
     
     lastPeriodSet = False
     index = 0
@@ -174,6 +181,13 @@ def BeginPeriod():
     for i in range(NUM_DUCKS_PER_PERIOD):
         SpawnDuck(index)
         index += 1
+        
+    # spawn bullets
+    for bullet in bullets:
+        try:
+            bullet.draw(win)
+        except:
+            None
     
 # returns True when period is done
 def PeriodCheck():
@@ -243,6 +257,7 @@ def shoot(channel):
                     roundScore += 1
                     totalScore += 1
             shotsTakenInPeriod += 1
+            #bullets[-shotsTakenInPeriod].undraw()
             
 def updateScore():
     global clockOutput
@@ -286,6 +301,7 @@ def main():
     global ActiveDucks
     global ducksMissed
     global background
+    global shotsTakenInPeriod
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
@@ -304,7 +320,7 @@ def main():
     roundText.draw(win)
     
     scoreText.setTextColor("white")
-    scoreText.setSize(20)
+    scoreText.setSize(25)
     scoreText.draw(win)
     
     ducksMissedText.setTextColor("white")
@@ -312,7 +328,7 @@ def main():
     ducksMissedText.draw(win)
     
     shotsTakenText.setTextColor("white")
-    shotsTakenText.setSize(20)
+    shotsTakenText.setSize(15)
     shotsTakenText.draw(win)
     
     #target.draw(win)
@@ -331,15 +347,15 @@ def main():
         #timeLeft = round(end - time.time(), 2)
         if ducksMissed >= 10:
             message.setText("Game Over!")
-            scoreText.setText("Final Score: " + str(totalScore))
+            #scoreText.setText("Final Score: " + str(totalScore))
             dog.draw(win)
             playing = False
         else:
             #message.setText(timeLeft)
-            scoreText.setText("Score: " + str(totalScore))
+            scoreText.setText("Score: " + clockOutput)
             roundText.setText("Round: " + str(roundNum))
             ducksMissedText.setText("Ducks Missed: " + str(ducksMissed))
-            shotsTakenText.setText("Shots Left: " + str(SHOTS_PER_PERIOD - shotsTakenInPeriod))
+            shotsTakenText.setText("Shots")
             
             if RoundCheck():
                 if time.time() - timeAtLastRound > TIME_BETWEEN_ROUNDS and len(unDrawDuck) == 0:
@@ -348,6 +364,12 @@ def main():
                     SetupRound()
             
             CanClear = True
+            for i in range(shotsTakenInPeriod):
+                try:
+                    bullets[-(i + 1)].undraw()
+                except:
+                    None
+                
             for unDraw in unDrawDuck:
                 try:
                     #duckCenter = unDraw.duckGraphic().getAnchor()
