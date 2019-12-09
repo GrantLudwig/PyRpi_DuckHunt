@@ -405,7 +405,7 @@ def main():
     time.sleep(5)
     win.close()
 
-# Setup GPIO
+# Setup GPIO0
 GPIO.setwarnings(False) # Ignore warnings
 GPIO.setmode(GPIO.BCM) # Use BCM Pin numbering
 GPIO.setup(26, GPIO.IN)
