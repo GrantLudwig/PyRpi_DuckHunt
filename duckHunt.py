@@ -32,6 +32,8 @@ deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
                 "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png")
 background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
 bulletImage = "/home/ludwigg/Python/PyRpi_DuckHunt/bullet.png"
+duckCountAliveImage = "/home/ludwigg/Python/PyRpi_DuckHunt/whiteDuck.png"
+duckCountDeadImage = "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png"
 
 RoundDucks = []
 ActiveDucks = []
@@ -59,6 +61,7 @@ TIME_BETWEEN_PERIODS = 1 # seconds
 TIME_BETWEEN_ROUNDS = 1 # seconds
 SHOTS_PER_PERIOD = 3
 SPREAD_RADIUS = 100
+MAX_ROUNDS = 999
 
 aim = Circle(Point(250, 250), SPREAD_RADIUS)
 innerAim = Circle(Point(250, 250), 5)
@@ -85,6 +88,9 @@ centerY = round(SCREEN_HEIGHT / 2)
 unDrawDuck = []
 bullets = []
 kill = False
+roundNumText = "000"
+duckDisplay = []
+deadDuckDisplay = []
 
 clockOutputLock = threading.Lock()
 
@@ -111,6 +117,11 @@ win = GraphWin("Duck Hunt", SCREEN_WIDTH, SCREEN_HEIGHT, autoflush=False)
 # setup bullets
 for i in range(SHOTS_PER_PERIOD):
     bullets.append(Image(Point(SCREEN_WIDTH - (32 + (30 * i)), 22), bulletImage))
+    
+# setup duck display
+for i in range(NUM_DUCKS_PER_ROUND):
+    duckDisplay.append(Image(Point(SCREEN_WIDTH - (247 + (30 * i)), 30), duckCountAliveImage))
+    deadDuckDisplay.append(Image(Point(SCREEN_WIDTH - (247 + (30 * i)), 30), duckCountDeadImage))
 
 def getXPosition():
     global chan
@@ -119,6 +130,15 @@ def getXPosition():
 def getYPosition():
     global chan2
     return round(chan2.voltage/3.3 * SCREEN_HEIGHT)
+    
+def UpdateRoundText(num):
+    global roundNumText
+    temp = ""
+    for i in range(len(str(MAX_ROUNDS)) - len(str(num))):
+        temp += "0"
+    temp += str(num)
+    roundNumText = temp
+    roundText.setText("Round: " + roundNumText)
     
 def SetupRound():
     global ducks
@@ -132,6 +152,7 @@ def SetupRound():
     currentPeriod = 1
     roundScore = 0
     roundNum += 1
+    UpdateRoundText(roundNum)
     
     RoundDucks.clear()
     #randIndex = random.randint(0,len(ducks) - 1)
@@ -139,7 +160,7 @@ def SetupRound():
         randIndex = random.randint(0,len(ducks) - 1)
         found = False
         while not found:
-            tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), random.randint(20, SCREEN_HEIGHT - 20)), ducks[randIndex])
+            tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), random.randint(118, SCREEN_HEIGHT - 30)), ducks[randIndex])
             targetCenter = tempDuck.getAnchor()
             # TODO need to compute differently because not square screen
             if math.sqrt((250 - targetCenter.x)**2 + (250 - targetCenter.y)**2) <= (260):
@@ -317,7 +338,6 @@ def main():
     
     roundText.setTextColor("white")
     roundText.setSize(20)
-    roundText.draw(win)
     
     scoreText.setTextColor("white")
     scoreText.setSize(25)
@@ -333,6 +353,9 @@ def main():
     
     #target.draw(win)
     #spawnTarget()
+    
+    for duck in duckDisplay:
+        duck.draw(win)
     
     aim.draw(win)
     innerAim.draw(win)
@@ -353,7 +376,6 @@ def main():
         else:
             #message.setText(timeLeft)
             scoreText.setText("Score: " + clockOutput)
-            roundText.setText("Round: " + str(roundNum))
             ducksMissedText.setText("Ducks Missed: " + str(ducksMissed))
             shotsTakenText.setText("Shots")
             
@@ -415,7 +437,7 @@ def main():
 
                     if duckCenter.y >= SCREEN_HEIGHT - 30:
                         duck.setVelocityY(-abs(duck.getRawVelocityY()))
-                    elif duckCenter.y <= 30:
+                    elif duckCenter.y <= 117:
                         duck.setVelocityY(abs(duck.getRawVelocityY()))
                         
                     duck.duckGraphic().move(duck.getVelocityX(), duck.getVelocityY())
