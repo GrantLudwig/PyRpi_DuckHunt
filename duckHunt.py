@@ -33,7 +33,7 @@ deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
 background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
 bulletImage = "/home/ludwigg/Python/PyRpi_DuckHunt/bullet.png"
 duckCountAliveImage = "/home/ludwigg/Python/PyRpi_DuckHunt/whiteDuck.png"
-duckCountDeadImage = "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png"
+duckCountDeadImage = "/home/ludwigg/Python/PyRpi_DuckHunt/deadRedDuck.png"
 
 RoundDucks = []
 ActiveDucks = []
@@ -91,6 +91,7 @@ kill = False
 roundNumText = "000"
 duckDisplay = []
 deadDuckDisplay = []
+indexKilledDucks = [] # will have 2 indexs, the index of the current ducks
 
 clockOutputLock = threading.Lock()
 
@@ -166,6 +167,11 @@ def SetupRound():
             if math.sqrt((250 - targetCenter.x)**2 + (250 - targetCenter.y)**2) <= (260):
                 found = True
                 RoundDucks.append(Duck(tempDuck, i, 10, 10))
+    for duck in duckDisplay:
+        try:
+            duck.draw(win)
+        except:
+            None
     BeginPeriod()
     
 def FlyAway():
@@ -188,6 +194,9 @@ def BeginPeriod():
     global ActiveDucks
     global lastPeriodSet
     global bullets
+    global indexKilledDucks
+    
+    indexKilledDucks.clear()
     
     lastPeriodSet = False
     index = 0
@@ -201,6 +210,7 @@ def BeginPeriod():
     ActiveDucks.clear()
     for i in range(NUM_DUCKS_PER_PERIOD):
         SpawnDuck(index)
+        indexKilledDucks.append(index)
         index += 1
         
     # spawn bullets
@@ -273,12 +283,11 @@ def shoot(channel):
             for target in ActiveDucks:
                 targetCenter = target.duckGraphic().getAnchor()
                 if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (SPREAD_RADIUS + 5) and not target.FlyingAway:
-                    target.killed()
                     unDrawDuck.append(target)
+                    target.killed()
                     roundScore += 1
                     totalScore += 1
             shotsTakenInPeriod += 1
-            #bullets[-shotsTakenInPeriod].undraw()
             
 def updateScore():
     global clockOutput
@@ -354,9 +363,6 @@ def main():
     #target.draw(win)
     #spawnTarget()
     
-    for duck in duckDisplay:
-        duck.draw(win)
-    
     aim.draw(win)
     innerAim.draw(win)
     
@@ -384,6 +390,8 @@ def main():
                     if roundScore == NUM_DUCKS_PER_ROUND:
                         totalScore += 10
                     SetupRound()
+                    for duck in deadDuckDisplay:
+                        duck.undraw()
             
             CanClear = True
             for i in range(shotsTakenInPeriod):
@@ -397,6 +405,10 @@ def main():
                     #duckCenter = unDraw.duckGraphic().getAnchor()
                     if not unDraw.FlyingAway:
                         unDraw.duckGraphic().undraw()
+                        if len(indexKilledDucks) > 0:
+                            duckDisplay[indexKilledDucks[0]].undraw()
+                            deadDuckDisplay[indexKilledDucks[0]].draw(win)
+                            del indexKilledDucks[0]
                     
                     elif unDraw.duckGraphic().getAnchor().y > SCREEN_HEIGHT + 20:
                         ducksMissed += 1
