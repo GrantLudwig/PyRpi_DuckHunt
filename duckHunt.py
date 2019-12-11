@@ -71,13 +71,13 @@ NORMAL_RADIUS = 50
 HARD_RADIUS = 30
 aimRadius = EASY_RADIUS
 
-aim = Circle(Point(250, 250), aimRadius)
-innerAim = Circle(Point(250, 250), 5)
+aim = Circle(Point(0, 0), aimRadius)
+innerAim = Circle(Point(0, 0), 5)
 #target = Image(Point(0, 0), ducks[duckIndex])
 #death = Image(Point(0, 0), deadDucks[duckIndex])
 message = Text(Point(300, 100), "")
 scoreText = Text(Point(117, 30), "")
-roundText = Text(Point(100, 100), "")
+roundText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
 ducksMissedText = Text(Point(100, 150), "")
 shotsTakenText = Text(Point(SCREEN_WIDTH - 62, 40), "")
 
@@ -176,14 +176,15 @@ def SetupRound():
     #randIndex = random.randint(0,len(ducks) - 1)
     for i in range(NUM_DUCKS_PER_ROUND):
         randIndex = random.randint(0,len(ducks) - 1)
-        found = False
-        while not found:
-            tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), random.randint(118, SCREEN_HEIGHT - 30)), ducks[randIndex])
-            targetCenter = tempDuck.getAnchor()
+        # found = False
+        # while not found:
+        tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), random.randint(118, SCREEN_HEIGHT - 30)), ducks[randIndex])
+        targetCenter = tempDuck.getAnchor()
+        RoundDucks.append(Duck(tempDuck, i, 10, 10))
             # TODO need to compute differently because not square screen
-            if math.sqrt((250 - targetCenter.x)**2 + (250 - targetCenter.y)**2) <= (260):
-                found = True
-                RoundDucks.append(Duck(tempDuck, i, 10, 10))
+            # if math.sqrt(((SCREEN_WIDTH / 2) - targetCenter.x)**2 + (250 - targetCenter.y)**2) <= (260):
+                # found = True
+                # RoundDucks.append(Duck(tempDuck, i, 10, 10))
     for duck in duckDisplay:
         try:
             duck.draw(win)
@@ -201,7 +202,8 @@ def SpawnDuck(index):
     global RoundDucks
     global ActiveDucks
     
-    RoundDucks[index].duckGraphic().draw(win)
+    if index > 1:
+        RoundDucks[index].duckGraphic().draw(win)
     RoundDucks[index].setActive()
     ActiveDucks.append(RoundDucks[index])
     
@@ -296,6 +298,7 @@ def shoot(channel):
     global difficultySelection
     global diffSelected
     global aimRadius
+    global ActiveDucks
     
     if not playing:
         if menuSelection == 0:
@@ -323,7 +326,7 @@ def shoot(channel):
             aimCenter = aim.getCenter()
             for target in ActiveDucks:
                 targetCenter = target.duckGraphic().getAnchor()
-                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (aimRadius + 5) and not target.FlyingAway:
+                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (aimRadius + 5) and not target.FlyingAway and target.isAlive():
                     unDrawDuck.append(target)
                     target.killed()
                     roundScore += 1
@@ -407,10 +410,12 @@ def main():
             temp.setText("Quit")
         temp.setTextColor("white")
         temp.setSize(20)
-        innerList[0].draw(win)
-        temp.draw(win)
         innerList.append(temp)
         menuButton.append(innerList)
+        
+    for items in menuButton:
+        items[0].draw(win)
+        items[2].draw(win)
     
     menuSelection = 0
     timeStickMoved = 0
@@ -519,7 +524,12 @@ def main():
     aim.draw(win)
     innerAim.draw(win)
     
+    timeRoundStart = 0
+    timeForRoundDisplay = 2 # sec
+    
     SetupRound()
+    timeRoundStart = time.time() + timeForRoundDisplay
+    roundDrawn = False
     while(playing and not quit):
         #timeLeft = round(end - time.time(), 2)
         if ducksMissed >= 10:
@@ -527,8 +537,22 @@ def main():
             #scoreText.setText("Final Score: " + str(totalScore))
             dog.draw(win)
             playing = False
+        elif timeRoundStart - time.time()> 0:
+            if not roundDrawn:
+                roundText.draw(win)
+                aim.undraw()
+                innerAim.undraw()
+                for duck in ActiveDucks:
+                    duck.duckGraphic().undraw()
+                roundDrawn = True
+            roundText.setText("Round: " + str(roundNum))
         else:
             #message.setText(timeLeft)
+            if roundDrawn:
+                roundText.undraw()
+                for duck in ActiveDucks:
+                    duck.duckGraphic().draw(win)
+                roundDrawn = False
             scoreText.setText("Score: " + clockOutput)
             ducksMissedText.setText("Ducks Missed: " + str(ducksMissed))
             shotsTakenText.setText("Shots")
@@ -538,6 +562,7 @@ def main():
                     if roundScore == NUM_DUCKS_PER_ROUND:
                         totalScore += 10
                     SetupRound()
+                    timeRoundStart = time.time() + timeForRoundDisplay
                     for duck in deadDuckDisplay:
                         duck.undraw()
             
@@ -574,9 +599,11 @@ def main():
                 # death.draw(win)
                 # deathTime = time.time() + .5
             
-                
-            aim.undraw()
-            innerAim.undraw()
+            try:
+                aim.undraw()
+                innerAim.undraw()
+            except:
+                None
             
             aim = Circle(Point(getXPosition(), getYPosition()), aimRadius)
             innerAim = Circle(Point(getXPosition(), getYPosition()), 5)
