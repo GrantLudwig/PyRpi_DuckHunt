@@ -80,6 +80,7 @@ scoreText = Text(Point(117, 30), "")
 roundText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
 ducksMissedText = Text(Point(100, 150), "")
 shotsTakenText = Text(Point(SCREEN_WIDTH - 62, 40), "")
+roundBonus = Text(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) - 25), "Round Bonus +10")
 
 shotsTakenInPeriod = 0
 roundNum = 0
@@ -520,6 +521,9 @@ def main():
     roundText.setTextColor("white")
     roundText.setSize(20)
     
+    roundBonus.setTextColor("white")
+    roundBonus.setSize(20)
+    
     scoreText.setTextColor("white")
     scoreText.setSize(25)
     scoreText.draw(win)
@@ -542,6 +546,7 @@ def main():
     SetupRound()
     timeRoundStart = time.time() + timeForRoundDisplay
     roundDrawn = False
+    perfectRound = False
     
     while(playing and not quit):
         #timeLeft = round(end - time.time(), 2)
@@ -555,19 +560,27 @@ def main():
             #scoreText.setText("Final Score: " + str(totalScore))
             dog.draw(win)
             playing = False
-        elif timeRoundStart - time.time()> 0:
+        elif timeRoundStart - time.time() > 0:
             if not roundDrawn:
+                if perfectRound:
+                    roundBonus.draw(win)
                 roundText.draw(win)
                 aim.undraw()
                 innerAim.undraw()
                 for duck in ActiveDucks:
                     duck.duckGraphic().undraw()
                 roundDrawn = True
+            roundBonus.setText("Round Bonus +10")
             roundText.setText("Round: " + str(roundNum))
         else:
             #message.setText(timeLeft)
             if roundDrawn:
+                perfectRound = False
                 roundText.undraw()
+                try:
+                    roundBonus.undraw()
+                except:
+                    None
                 for duck in ActiveDucks:
                     duck.duckGraphic().draw(win)
                 roundDrawn = False
@@ -577,6 +590,7 @@ def main():
             if RoundCheck():
                 if time.time() - timeAtLastRound > TIME_BETWEEN_ROUNDS and len(unDrawDuck) == 0:
                     if roundScore == NUM_DUCKS_PER_ROUND:
+                        perfectRound = True
                         totalScore += 10
                     SetupRound()
                     timeRoundStart = time.time() + timeForRoundDisplay
