@@ -23,7 +23,7 @@ class Duck:
         self.__Active = False
         self.__Activated = False
         self.__ActiveTime = None
-        self.__TIME_TO_SHOOT = 6
+        self.__TIME_TO_SHOOT = 6.2
         self.__TIME_TILL_NEW_VELOCITY = 0.5
         self.__MaxX = maxX
         self.__MaxY = maxY
@@ -31,6 +31,7 @@ class Duck:
         self.__VelocityY = random.randint(-maxY,maxY)
         self.__VelocitySetTime = None
         self.FlyingAway = False
+        self.Spawning = True
         
     def getVelocityX(self):
         if time.time() - self.__VelocitySetTime >= self.__TIME_TILL_NEW_VELOCITY:

@@ -100,6 +100,7 @@ roundNumText = "000"
 duckDisplay = []
 deadDuckDisplay = []
 indexKilledDucks = [] # will have 2 indexs, the index of the current ducks
+missedDuckDisplay = []
 menuSelection = 0
 difficultySelection = 0
 diffSelected = False
@@ -135,6 +136,12 @@ for i in range(SHOTS_PER_PERIOD):
 for i in range(NUM_DUCKS_PER_ROUND):
     duckDisplay.append(Image(Point(SCREEN_WIDTH - (247 + (30 * i)), 30), duckCountAliveImage))
     deadDuckDisplay.append(Image(Point(SCREEN_WIDTH - (247 + (30 * i)), 30), duckCountDeadImage))
+    
+# setup total missed ducks
+for i in range(10):
+    innerList = [False]
+    innerList.append(Rectangle(Point(SCREEN_WIDTH - (247 + (30 * i)) + 15, 17), Point(SCREEN_WIDTH - (247 + (30 * i)) - 15, 10)))
+    missedDuckDisplay.append(innerList)
 
 def getXPosition():
     global chan2
@@ -178,7 +185,7 @@ def SetupRound():
         randIndex = random.randint(0,len(ducks) - 1)
         # found = False
         # while not found:
-        tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), random.randint(118, SCREEN_HEIGHT - 30)), ducks[randIndex])
+        tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), 100), ducks[randIndex])
         targetCenter = tempDuck.getAnchor()
         RoundDucks.append(Duck(tempDuck, i, 10, 10))
             # TODO need to compute differently because not square screen
@@ -324,14 +331,18 @@ def shoot(channel):
     else:
         if shotsTakenInPeriod < SHOTS_PER_PERIOD:
             aimCenter = aim.getCenter()
+            stillSpawning = False
             for target in ActiveDucks:
+                if target.Spawning:
+                    stillSpawning = True
                 targetCenter = target.duckGraphic().getAnchor()
-                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (aimRadius + 5) and not target.FlyingAway and target.isAlive():
+                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (aimRadius + 5) and not target.FlyingAway and target.isAlive() and not stillSpawning:
                     unDrawDuck.append(target)
                     target.killed()
                     roundScore += 1
                     totalScore += 1
-            shotsTakenInPeriod += 1
+            if not stillSpawning:
+                shotsTakenInPeriod += 1
             
 def reset(channel):
     print("TEST")
@@ -513,13 +524,14 @@ def main():
     scoreText.setSize(25)
     scoreText.draw(win)
     
-    ducksMissedText.setTextColor("white")
-    ducksMissedText.setSize(20)
-    ducksMissedText.draw(win)
+    # ducksMissedText.setTextColor("white")
+    # ducksMissedText.setSize(20)
+    # ducksMissedText.draw(win)
     
     shotsTakenText.setTextColor("white")
     shotsTakenText.setSize(15)
     shotsTakenText.draw(win)
+    shotsTakenText.setText("Shots")
     
     aim.draw(win)
     innerAim.draw(win)
@@ -530,8 +542,14 @@ def main():
     SetupRound()
     timeRoundStart = time.time() + timeForRoundDisplay
     roundDrawn = False
+    
     while(playing and not quit):
         #timeLeft = round(end - time.time(), 2)
+        for i in range(ducksMissed):
+            if not missedDuckDisplay[i][0]:
+                missedDuckDisplay[i][1].setFill("red")
+                missedDuckDisplay[i][1].draw(win)
+                missedDuckDisplay[i][0] = True
         if ducksMissed >= 10:
             message.setText("Game Over!")
             #scoreText.setText("Final Score: " + str(totalScore))
@@ -554,8 +572,7 @@ def main():
                     duck.duckGraphic().draw(win)
                 roundDrawn = False
             scoreText.setText("Score: " + clockOutput)
-            ducksMissedText.setText("Ducks Missed: " + str(ducksMissed))
-            shotsTakenText.setText("Shots")
+            # ducksMissedText.setText("Ducks Missed: " + str(ducksMissed))
             
             if RoundCheck():
                 if time.time() - timeAtLastRound > TIME_BETWEEN_ROUNDS and len(unDrawDuck) == 0:
@@ -615,7 +632,7 @@ def main():
             innerAim.draw(win)
             
             for duck in ActiveDucks:
-                if duck.isActive():
+                if duck.isActive() and not duck.Spawning:
                     duckCenter = duck.duckGraphic().getAnchor()
                     if duckCenter.x >= SCREEN_WIDTH - 30:
                         duck.setVelocityX(-abs(duck.getRawVelocityX()))
@@ -628,6 +645,11 @@ def main():
                         duck.setVelocityY(abs(duck.getRawVelocityY()))
                         
                     duck.duckGraphic().move(duck.getVelocityX(), duck.getVelocityY())
+                elif duck.Spawning:
+                    duckCenter = duck.duckGraphic().getAnchor()
+                    duck.duckGraphic().move(0, 18)
+                    if duckCenter.y > 250:
+                        duck.Spawning = False
             
             # if (deathTime - time.time()) < 0:
                 # try:
