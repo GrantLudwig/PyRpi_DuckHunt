@@ -5,6 +5,9 @@
 # Grant Ludwig
 # 11/18/2019
 # Duck Hunt
+# Note: Due to time constraints, the code is not as pretty as it should
+    # This should all get refactored to be more legiable as well as to proably run faster
+    # Overall this is very much spaghetti code
 
 from graphics import *
 from Duck import *
@@ -62,10 +65,13 @@ TIME_BETWEEN_DUCKS = 1 # seconds
 TIME_BETWEEN_PERIODS = 1 # seconds
 TIME_BETWEEN_ROUNDS = 1 # seconds
 SHOTS_PER_PERIOD = 3
-SPREAD_RADIUS = 100
 MAX_ROUNDS = 999
+EASY_RADIUS = 100
+NORMAL_RADIUS = 50
+HARD_RADIUS = 30
+aimRadius = EASY_RADIUS
 
-aim = Circle(Point(250, 250), SPREAD_RADIUS)
+aim = Circle(Point(250, 250), aimRadius)
 innerAim = Circle(Point(250, 250), 5)
 #target = Image(Point(0, 0), ducks[duckIndex])
 #death = Image(Point(0, 0), deadDucks[duckIndex])
@@ -95,6 +101,8 @@ duckDisplay = []
 deadDuckDisplay = []
 indexKilledDucks = [] # will have 2 indexs, the index of the current ducks
 menuSelection = 0
+difficultySelection = 0
+diffSelected = False
 quit = False
 
 clockOutputLock = threading.Lock()
@@ -285,19 +293,37 @@ def shoot(channel):
     global unDrawDuck
     global menuSelection
     global quit
+    global difficultySelection
+    global diffSelected
+    global aimRadius
     
     if not playing:
         if menuSelection == 0:
             playing = True
-        if menuSelection == 2:
+        elif menuSelection == 1:
+            # settings
+            None
+        else:
             playing = True
             quit = True
+            
+    elif playing and not diffSelected:
+        if difficultySelection == 0:
+            aimRadius = EASY_RADIUS
+            diffSelected = True
+        elif difficultySelection == 1:
+            aimRadius = NORMAL_RADIUS
+            diffSelected = True
+        else:
+            aimRadius = HARD_RADIUS
+            diffSelected = True
+            
     else:
         if shotsTakenInPeriod < SHOTS_PER_PERIOD:
             aimCenter = aim.getCenter()
             for target in ActiveDucks:
                 targetCenter = target.duckGraphic().getAnchor()
-                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (SPREAD_RADIUS + 5) and not target.FlyingAway:
+                if math.sqrt((aimCenter.x - targetCenter.x)**2 + (aimCenter.y - targetCenter.y)**2) <= (aimRadius + 5) and not target.FlyingAway:
                     unDrawDuck.append(target)
                     target.killed()
                     roundScore += 1
@@ -353,6 +379,8 @@ def main():
     global menuSelect
     global menuSelected
     global menuSelection
+    global aimRadius
+    global difficultySelection
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
@@ -392,7 +420,7 @@ def main():
     menuButton[menuSelection][1].draw(win) # draw selected button
     menuButton[menuSelection][2].draw(win) # draw text
     
-    while not playing: # need to press button to begin
+    while not playing:
         if time.time() > timeStickMoved + .2:
             if getRawY() > .7:
                 menuButton[menuSelection][1].undraw() # undraw selected
@@ -419,6 +447,45 @@ def main():
                 menuButton[menuSelection][2].undraw() # undraw text
                 menuButton[menuSelection][1].draw(win) # draw selected button
                 menuButton[menuSelection][2].draw(win) # draw text
+                timeStickMoved = time.time()
+        update(60)
+        
+    difficultySelection = 0
+    menuButton[0][2].setText("Easy")
+    menuButton[1][2].setText("Normal")
+    menuButton[2][2].setText("Hard")
+    # menuButton[difficultySelection][0].undraw() # undraw normal button
+    # menuButton[difficultySelection][2].undraw() # undraw text
+    # menuButton[difficultySelection][1].draw(win) # draw selected button
+    # menuButton[difficultySelection][2].draw(win) # draw text
+    
+    while not diffSelected:
+        if time.time() > timeStickMoved + .2:
+            if getRawY() > .7:
+                menuButton[difficultySelection][1].undraw() # undraw selected
+                menuButton[difficultySelection][2].undraw() # undraw text
+                menuButton[difficultySelection][0].draw(win) # draw normal button
+                menuButton[difficultySelection][2].draw(win) # draw text
+                difficultySelection -= 1
+                if difficultySelection < 0:
+                    difficultySelection = 2
+                menuButton[difficultySelection][0].undraw() # undraw normal button
+                menuButton[difficultySelection][2].undraw() # undraw text
+                menuButton[difficultySelection][1].draw(win) # draw selected button
+                menuButton[difficultySelection][2].draw(win) # draw text
+                timeStickMoved = time.time()
+            elif getRawY() < .3:
+                menuButton[difficultySelection][1].undraw() # undraw selected
+                menuButton[difficultySelection][2].undraw() # undraw text
+                menuButton[difficultySelection][0].draw(win) # draw normal button
+                menuButton[difficultySelection][2].draw(win) # draw text
+                difficultySelection += 1
+                if difficultySelection > 2:
+                    difficultySelection = 0
+                menuButton[difficultySelection][0].undraw() # undraw normal button
+                menuButton[difficultySelection][2].undraw() # undraw text
+                menuButton[difficultySelection][1].draw(win) # draw selected button
+                menuButton[difficultySelection][2].draw(win) # draw text
                 timeStickMoved = time.time()
         update(60)
         
@@ -511,7 +578,7 @@ def main():
             aim.undraw()
             innerAim.undraw()
             
-            aim = Circle(Point(getXPosition(), getYPosition()), SPREAD_RADIUS)
+            aim = Circle(Point(getXPosition(), getYPosition()), aimRadius)
             innerAim = Circle(Point(getXPosition(), getYPosition()), 5)
             
             aim.setOutline("Red")
