@@ -34,6 +34,8 @@ background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
 bulletImage = "/home/ludwigg/Python/PyRpi_DuckHunt/bullet.png"
 duckCountAliveImage = "/home/ludwigg/Python/PyRpi_DuckHunt/whiteDuck.png"
 duckCountDeadImage = "/home/ludwigg/Python/PyRpi_DuckHunt/deadRedDuck.png"
+menuSelect = "/home/ludwigg/Python/PyRpi_DuckHunt/MenuSelection.png"
+menuSelected = "/home/ludwigg/Python/PyRpi_DuckHunt/SelectedMenuSelection.png"
 
 RoundDucks = []
 ActiveDucks = []
@@ -125,12 +127,13 @@ for i in range(NUM_DUCKS_PER_ROUND):
     deadDuckDisplay.append(Image(Point(SCREEN_WIDTH - (247 + (30 * i)), 30), duckCountDeadImage))
 
 def getXPosition():
-    global chan
-    return round(chan.voltage/3.3 * SCREEN_WIDTH)
+    global chan2
+    return round((1 - (chan2.voltage/3.3)) * SCREEN_WIDTH)
 
 def getYPosition():
-    global chan2
-    return round(chan2.voltage/3.3 * SCREEN_HEIGHT)
+    global chan
+    # 333 is the height of the shootable area, + 117 to offset from bottom of screen
+    return round((chan.voltage/3.3 * 333) + 117)
     
 def UpdateRoundText(num):
     global roundNumText
@@ -289,6 +292,9 @@ def shoot(channel):
                     totalScore += 1
             shotsTakenInPeriod += 1
             
+def reset(channel):
+    print("TEST")
+            
 def updateScore():
     global clockOutput
     global totalScore
@@ -341,6 +347,38 @@ def main():
     backgroundImage = Image(Point((SCREEN_WIDTH / 2), SCREEN_HEIGHT / 2), background)
     backgroundImage.draw(win)
     
+    dog = Image(Point(centerX,centerY), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
+    
+    # Main Menu Setup
+    topButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 80), "")
+    middleButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
+    bottomButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 80), "")
+    
+    topButton = Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 80), menuSelect)
+    middleButton = Image(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), menuSelect)
+    bottomButton = Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) - 80), menuSelect)
+    
+    topButton.draw(win)
+    topButtonText.setText("Play")
+    topButtonText.setTextColor("white")
+    topButtonText.setSize(20)
+    topButtonText.draw(win)
+    
+    middleButton.draw(win)
+    middleButtonText.setText("Settings")
+    middleButtonText.setTextColor("white")
+    middleButtonText.setSize(20)
+    middleButtonText.draw(win)
+    
+    bottomButton.draw(win)
+    bottomButtonText.setText("Quit")
+    bottomButtonText.setTextColor("white")
+    bottomButtonText.setSize(20)
+    bottomButtonText.draw(win)
+    
+    while not playing: # need to press button to begin
+        update(60)
+        
     message.setTextColor("white")
     message.setSize(20)
     message.draw(win)
@@ -360,17 +398,9 @@ def main():
     shotsTakenText.setSize(15)
     shotsTakenText.draw(win)
     
-    #target.draw(win)
-    #spawnTarget()
-    
     aim.draw(win)
     innerAim.draw(win)
     
-    dog = Image(Point(centerX,centerY), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
-    
-    while not playing: # need to press button to begin
-        deathTime = 0 # need something so loop runs
-        
     SetupRound()
     while(playing):
         #timeLeft = round(end - time.time(), 2)
@@ -470,8 +500,10 @@ def main():
 GPIO.setwarnings(False) # Ignore warnings
 GPIO.setmode(GPIO.BCM) # Use BCM Pin numbering
 GPIO.setup(26, GPIO.IN)
+GPIO.setup(14, GPIO.IN)
 
 GPIO.add_event_detect(26, GPIO.FALLING, callback=shoot, bouncetime=300)
+GPIO.add_event_detect(14, GPIO.FALLING, callback=reset, bouncetime=300)
 
 segments = (GPIO_A, GPIO_B, GPIO_C, GPIO_D, GPIO_E, GPIO_F, GPIO_G)
 digits = (GPIO_D1, GPIO_D2, GPIO_D3, GPIO_D4)
