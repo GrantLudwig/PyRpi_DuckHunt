@@ -94,6 +94,8 @@ roundNumText = "000"
 duckDisplay = []
 deadDuckDisplay = []
 indexKilledDucks = [] # will have 2 indexs, the index of the current ducks
+menuSelection = 0
+quit = False
 
 clockOutputLock = threading.Lock()
 
@@ -134,6 +136,10 @@ def getYPosition():
     global chan
     # 333 is the height of the shootable area, + 117 to offset from bottom of screen
     return round((chan.voltage/3.3 * 333) + 117)
+    
+def getRawY():
+    global chan
+    return chan.voltage/3.3
     
 def UpdateRoundText(num):
     global roundNumText
@@ -277,9 +283,15 @@ def shoot(channel):
     global totalScore
     global playing
     global unDrawDuck
+    global menuSelection
+    global quit
     
     if not playing:
-        playing = True
+        if menuSelection == 0:
+            playing = True
+        if menuSelection == 2:
+            playing = True
+            quit = True
     else:
         if shotsTakenInPeriod < SHOTS_PER_PERIOD:
             aimCenter = aim.getCenter()
@@ -338,6 +350,9 @@ def main():
     global ducksMissed
     global background
     global shotsTakenInPeriod
+    global menuSelect
+    global menuSelected
+    global menuSelection
     
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
@@ -350,34 +365,70 @@ def main():
     dog = Image(Point(centerX,centerY), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
     
     # Main Menu Setup
-    topButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 80), "")
-    middleButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
-    bottomButtonText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 80), "")
+    menuButton = []
+    for i in range(3):
+        innerList = []
+        innerList.append(Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + (80 - i * (80))), menuSelect))
+        innerList.append(Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + (80 - i * (80))), menuSelected))
+        temp = Text(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + (80 - i * (80))), "")
+        if i == 0:
+            temp.setText("Play")
+        elif i == 1:
+            temp.setText("Settings")
+        else:
+            temp.setText("Quit")
+        temp.setTextColor("white")
+        temp.setSize(20)
+        innerList[0].draw(win)
+        temp.draw(win)
+        innerList.append(temp)
+        menuButton.append(innerList)
     
-    topButton = Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) + 80), menuSelect)
-    middleButton = Image(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), menuSelect)
-    bottomButton = Image(Point(SCREEN_WIDTH / 2, (SCREEN_HEIGHT / 2) - 80), menuSelect)
+    menuSelection = 0
+    timeStickMoved = 0
     
-    topButton.draw(win)
-    topButtonText.setText("Play")
-    topButtonText.setTextColor("white")
-    topButtonText.setSize(20)
-    topButtonText.draw(win)
-    
-    middleButton.draw(win)
-    middleButtonText.setText("Settings")
-    middleButtonText.setTextColor("white")
-    middleButtonText.setSize(20)
-    middleButtonText.draw(win)
-    
-    bottomButton.draw(win)
-    bottomButtonText.setText("Quit")
-    bottomButtonText.setTextColor("white")
-    bottomButtonText.setSize(20)
-    bottomButtonText.draw(win)
+    menuButton[menuSelection][0].undraw() # undraw normal button
+    menuButton[menuSelection][2].undraw() # undraw text
+    menuButton[menuSelection][1].draw(win) # draw selected button
+    menuButton[menuSelection][2].draw(win) # draw text
     
     while not playing: # need to press button to begin
+        if time.time() > timeStickMoved + .2:
+            if getRawY() > .7:
+                menuButton[menuSelection][1].undraw() # undraw selected
+                menuButton[menuSelection][2].undraw() # undraw text
+                menuButton[menuSelection][0].draw(win) # draw normal button
+                menuButton[menuSelection][2].draw(win) # draw text
+                menuSelection -= 1
+                if menuSelection < 0:
+                    menuSelection = 2
+                menuButton[menuSelection][0].undraw() # undraw normal button
+                menuButton[menuSelection][2].undraw() # undraw text
+                menuButton[menuSelection][1].draw(win) # draw selected button
+                menuButton[menuSelection][2].draw(win) # draw text
+                timeStickMoved = time.time()
+            elif getRawY() < .3:
+                menuButton[menuSelection][1].undraw() # undraw selected
+                menuButton[menuSelection][2].undraw() # undraw text
+                menuButton[menuSelection][0].draw(win) # draw normal button
+                menuButton[menuSelection][2].draw(win) # draw text
+                menuSelection += 1
+                if menuSelection > 2:
+                    menuSelection = 0
+                menuButton[menuSelection][0].undraw() # undraw normal button
+                menuButton[menuSelection][2].undraw() # undraw text
+                menuButton[menuSelection][1].draw(win) # draw selected button
+                menuButton[menuSelection][2].draw(win) # draw text
+                timeStickMoved = time.time()
         update(60)
+        
+    # remove menu
+    for items in menuButton:
+        for thing in items:
+            try:
+                thing.undraw()
+            except:
+                None
         
     message.setTextColor("white")
     message.setSize(20)
@@ -402,7 +453,7 @@ def main():
     innerAim.draw(win)
     
     SetupRound()
-    while(playing):
+    while(playing and not quit):
         #timeLeft = round(end - time.time(), 2)
         if ducksMissed >= 10:
             message.setText("Game Over!")
@@ -493,7 +544,6 @@ def main():
         updateScore()
         update(60)
     
-    time.sleep(5)
     win.close()
 
 # Setup GPIO0
