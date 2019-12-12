@@ -27,12 +27,12 @@ class Duck:
         self.__TIME_TILL_NEXT_FRAME = 0.1
         self.__deathTime = 0
         self.__TIME_TILL_FALL = 0.5
-        self.__InDeath = False
+        self.InDeath = False
         self.FlyingAway = False
         self.Spawning = True
         
     def setImageType(self, image):
-        if self.__Active or self.FlyingAway or self.__InDeath:
+        if self.__Active or self.FlyingAway or self.InDeath:
             if image == "normal":
                 if self.__VelocityX >= 0 and self.__frameType != "left":
                     self.__frameType = "left"
@@ -174,19 +174,25 @@ class Duck:
         
     def death(self):
         center = self.__DuckImage.getAnchor()
+        print(center)
         if center.y < 100:
-            self.__InDeath = False
-            return true
+            self.InDeath = False
+            return True
         else:
+            print(time.time() - self.__deathTime)
             if time.time() - self.__deathTime >= self.__TIME_TILL_FALL:
                 print("Here")
-                self.setImageType("down")
+                if self.__frameType != "down":
+                    self.setImageType("down")
+                #self.animate()
                 self.__DuckImage.move(0, -10)
             else:
                 print("Hello")
-                self.setImageType("shot")
+                if self.__frameType != "shot":
+                    self.setImageType("shot")
+                #self.animate()
                 self.__DuckImage.move(0, 0)
-            return false
+            return False
         
     def setActive(self):
         self.__ActiveTime = time.time()
@@ -199,5 +205,5 @@ class Duck:
         self.__Alive = False
         self.__Active = False
         self.FlyingAway = False
-        self.__InDeath = True
+        self.InDeath = True
         self.__deathTime = time.time()

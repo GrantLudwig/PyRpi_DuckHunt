@@ -391,7 +391,7 @@ def shoot(channel):
                 shotsTakenInPeriod += 1
             
 def reset(channel):
-    print("TEST")
+    print("RESET")
             
 def updateScore():
     global clockOutput
@@ -655,13 +655,19 @@ def main():
                 try:
                     #duckCenter = unDraw.duckGraphic().getAnchor()
                     if not unDraw.FlyingAway and not unDraw.isAlive():
+                        CanClear = False
                         if unDraw.death():
                             unDraw.duckGraphic().undraw()
+                        else:
+                            try:
+                                print("DRAW")
+                                unDraw.duckGraphic().draw(win)
+                            except:
+                                None
                         if len(indexKilledDucks) > 0 and indexKilledDucks[0][1]:
                             duckDisplay[indexKilledDucks[0][0]].undraw()
                             deadDuckDisplay[indexKilledDucks[0][0]].draw(win)
                             del indexKilledDucks[0]
-                    
                     elif unDraw.duckGraphic().getAnchor().y > SCREEN_HEIGHT + 20:
                         ducksMissed += 1
                         unDraw.killed()
@@ -672,7 +678,12 @@ def main():
                         CanClear = False
                 except:
                     None
-            if CanClear:
+            count = 0
+            for unDraw in unDrawDuck:
+                if not unDraw.InDeath:
+                    count += 1
+                    
+            if CanClear or count == len(unDrawDuck):
                 unDrawDuck.clear()
                 # death = Image(target.getAnchor(), deadDucks[duckIndex])
                 # spawnTarget()
