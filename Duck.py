@@ -68,7 +68,7 @@ class Duck:
                     self.__DuckImage.undraw()
                 except:
                     None
-                self.__DuckImage = Image(center, self.__dict[self.__frameType][0])
+                self.__DuckImage = Image(center, self.__dict[self.__frameType])
                 self.__DuckImage.draw(self.__window)
             elif image == "shot":
                 self.__frameType = "shot"
@@ -77,7 +77,8 @@ class Duck:
                     self.__DuckImage.undraw()
                 except:
                     None
-                self.__DuckImage = Image(center, self.__dict[self.__frameType][0])
+                print(self.__dict[self.__frameType][0])
+                self.__DuckImage = Image(center, self.__dict[self.__frameType])
                 self.__DuckImage.draw(self.__window)
         
     def animate(self):
@@ -107,7 +108,7 @@ class Duck:
                     self.__DuckImage.undraw()
                 except:
                     None
-                self.__DuckImage = Image(center, self.__dict[self.__frameType][0])
+                self.__DuckImage = Image(center, self.__dict[self.__frameType])
                 self.__DuckImage.draw(self.__window)
             
             self.__animateTime = time.time()

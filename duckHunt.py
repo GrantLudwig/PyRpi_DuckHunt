@@ -655,15 +655,15 @@ def main():
                 try:
                     #duckCenter = unDraw.duckGraphic().getAnchor()
                     if not unDraw.FlyingAway and not unDraw.isAlive():
-                        #CanClear = False
-                        #if unDraw.death():
-                        unDraw.duckGraphic().undraw()
-                        # else:
-                            # try:
-                                # print("DRAW")
-                                # unDraw.duckGraphic().draw(win)
-                            # except:
-                                # None
+                        CanClear = False
+                        if unDraw.death():
+                            unDraw.duckGraphic().undraw()
+                        else:
+                            try:
+                                print("DRAW")
+                                unDraw.duckGraphic().draw(win)
+                            except:
+                                None
                         if len(indexKilledDucks) > 0 and indexKilledDucks[0][1]:
                             duckDisplay[indexKilledDucks[0][0]].undraw()
                             deadDuckDisplay[indexKilledDucks[0][0]].draw(win)
@@ -675,15 +675,16 @@ def main():
                     else:
                         unDraw.setImageType("up")
                         unDraw.duckGraphic().move(0, 10)
+                        print("Flying up", unDraw.duckGraphic().getAnchor())
                         CanClear = False
                 except:
                     None
-            # count = 0
-            # for unDraw in unDrawDuck:
-                # if not unDraw.InDeath:
-                    # count += 1
+            count = 0
+            for unDraw in unDrawDuck:
+                if not unDraw.InDeath and not unDraw.FlyingAway:
+                    count += 1
                     
-            if CanClear:
+            if CanClear or count == len(unDrawDuck):
                 unDrawDuck.clear()
                 # death = Image(target.getAnchor(), deadDucks[duckIndex])
                 # spawnTarget()
