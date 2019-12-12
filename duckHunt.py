@@ -8,6 +8,7 @@
 # Note: Due to time constraints, the code is not as pretty as it should
     # This should all get refactored to be more legiable as well as to proably run faster
     # Overall this is very much spaghetti code
+    # I now can move all duck drawing code into the duck class, thought I couldn't
 
 from graphics import *
 from Duck import *
@@ -28,12 +29,12 @@ SCREEN_HEIGHT = 450
 
 kill = False
 
-ducks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuck.png",
-            "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuck.png",
-            "/home/ludwigg/Python/PyRpi_DuckHunt/redDuck.png")
-deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
-                "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuckDead.png",
-                "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png")
+# ducks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuck.png",
+            # "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuck.png",
+            # "/home/ludwigg/Python/PyRpi_DuckHunt/redDuck.png")
+# deadDucks = (   "/home/ludwigg/Python/PyRpi_DuckHunt/blueDuckDead.png",
+                # "/home/ludwigg/Python/PyRpi_DuckHunt/blackDuckDead.png",
+                # "/home/ludwigg/Python/PyRpi_DuckHunt/redDuckDead.png")
 background = "/home/ludwigg/Python/PyRpi_DuckHunt/DuckHuntBackground.png"
 bulletImage = "/home/ludwigg/Python/PyRpi_DuckHunt/bullet.png"
 duckCountAliveImage = "/home/ludwigg/Python/PyRpi_DuckHunt/whiteDuck.png"
@@ -41,6 +42,44 @@ duckCountDeadImage = "/home/ludwigg/Python/PyRpi_DuckHunt/deadRedDuck.png"
 menuSelect = "/home/ludwigg/Python/PyRpi_DuckHunt/MenuSelection.png"
 menuSelected = "/home/ludwigg/Python/PyRpi_DuckHunt/SelectedMenuSelection.png"
 
+redDuckDict = { "right":(   "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redRight1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redRight2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redRight2.png"),
+                "left":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redLeft1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redLeft2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redLeft3.png"),
+                "up":(      "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redUp1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redUp2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redUp3.png"),
+                "shot":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redShot.png"),
+                "down":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/redDown.png")}
+                
+blueDuckDict = { "right":(  "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueRight1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueRight2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueRight2.png"),
+                "left":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueLeft1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueLeft2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueLeft3.png"),
+                "up":(      "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueUp1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueUp2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueUp3.png"),
+                "shot":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueShot.png"),
+                "down":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blueDown.png")}
+                
+blackDuckDict = { "right":( "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackRight1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackRight2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackRight2.png"),
+                "left":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackLeft1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackLeft2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackLeft3.png"),
+                "up":(      "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackUp1.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackUp2.png",
+                            "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackUp3.png"),
+                "shot":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackShot.png"),
+                "down":(    "/home/ludwigg/Python/PyRpi_DuckHunt/Ducks/blackDown.png")}
+                
+ducks = [redDuckDict, blueDuckDict, blackDuckDict]
+            
 RoundDucks = []
 ActiveDucks = []
 duckIndex = 0
@@ -174,6 +213,7 @@ def SetupRound():
     global roundScore
     global roundNum
     global lastRoundSet
+    global win
     
     lastRoundSet = False
     currentPeriod = 1
@@ -187,9 +227,9 @@ def SetupRound():
         randIndex = random.randint(0,len(ducks) - 1)
         # found = False
         # while not found:
-        tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), 100), ducks[randIndex])
-        targetCenter = tempDuck.getAnchor()
-        RoundDucks.append(Duck(tempDuck, i, 10, 10))
+        tempDuck = Image(Point(random.randint(20, SCREEN_WIDTH - 20), 100), ducks[randIndex]["up"][0])
+        #targetCenter = tempDuck.getAnchor()
+        RoundDucks.append(Duck(tempDuck, i, 10, 10, ducks[randIndex], win))
             # TODO need to compute differently because not square screen
             # if math.sqrt(((SCREEN_WIDTH / 2) - targetCenter.x)**2 + (250 - targetCenter.y)**2) <= (260):
                 # found = True
@@ -402,9 +442,10 @@ def main():
     global aimRadius
     global difficultySelection
     
+    
+    threading.Thread(target=scoreLoop).start()
     # set coordnate plane for easy translation from the joystick position
     # xll, yll, xur, yur
-    threading.Thread(target=scoreLoop).start()
     win.setCoords(SCREEN_WIDTH, 0, 0, SCREEN_HEIGHT)
     win.setBackground("Grey")
     backgroundImage = Image(Point((SCREEN_WIDTH / 2), SCREEN_HEIGHT / 2), background)
@@ -614,7 +655,8 @@ def main():
                 try:
                     #duckCenter = unDraw.duckGraphic().getAnchor()
                     if not unDraw.FlyingAway and not unDraw.isAlive():
-                        unDraw.duckGraphic().undraw()
+                        if unDraw.death():
+                            unDraw.duckGraphic().undraw()
                         if len(indexKilledDucks) > 0 and indexKilledDucks[0][1]:
                             duckDisplay[indexKilledDucks[0][0]].undraw()
                             deadDuckDisplay[indexKilledDucks[0][0]].draw(win)
@@ -625,6 +667,7 @@ def main():
                         unDraw.killed()
                         unDraw.duckGraphic().undraw()
                     else:
+                        unDraw.setImageType("up")
                         unDraw.duckGraphic().move(0, 10)
                         CanClear = False
                 except:
@@ -670,6 +713,7 @@ def main():
                     duck.duckGraphic().move(0, 18)
                     if duckCenter.y > 250:
                         duck.Spawning = False
+                duck.animate()
             
             # if (deathTime - time.time()) < 0:
                 # try:
