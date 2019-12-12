@@ -660,7 +660,6 @@ def main():
                             unDraw.duckGraphic().undraw()
                         else:
                             try:
-                                print("DRAW")
                                 unDraw.duckGraphic().draw(win)
                             except:
                                 None
@@ -671,11 +670,11 @@ def main():
                     elif unDraw.duckGraphic().getAnchor().y > SCREEN_HEIGHT + 20:
                         ducksMissed += 1
                         unDraw.killed()
+                        unDraw.gotAway()
                         unDraw.duckGraphic().undraw()
                     else:
                         unDraw.setImageType("up")
                         unDraw.duckGraphic().move(0, 10)
-                        print("Flying up", unDraw.duckGraphic().getAnchor())
                         CanClear = False
                 except:
                     None
@@ -739,7 +738,7 @@ def main():
         time.sleep(5)
     win.close()
 
-# Setup GPIO0
+# Setup GPIO
 GPIO.setwarnings(False) # Ignore warnings
 GPIO.setmode(GPIO.BCM) # Use BCM Pin numbering
 GPIO.setup(26, GPIO.IN)

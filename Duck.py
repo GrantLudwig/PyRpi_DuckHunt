@@ -77,7 +77,6 @@ class Duck:
                     self.__DuckImage.undraw()
                 except:
                     None
-                print(self.__dict[self.__frameType][0])
                 self.__DuckImage = Image(center, self.__dict[self.__frameType])
                 self.__DuckImage.draw(self.__window)
         
@@ -175,20 +174,16 @@ class Duck:
         
     def death(self):
         center = self.__DuckImage.getAnchor()
-        print(center)
-        if center.y < 100:
+        if center.y < 100 or not self.InDeath:
             self.InDeath = False
             return True
         else:
-            print(time.time() - self.__deathTime)
             if time.time() - self.__deathTime >= self.__TIME_TILL_FALL:
-                print("Here")
                 if self.__frameType != "down":
                     self.setImageType("down")
                 #self.animate()
                 self.__DuckImage.move(0, -10)
             else:
-                print("Hello")
                 if self.__frameType != "shot":
                     self.setImageType("shot")
                 #self.animate()
@@ -208,3 +203,6 @@ class Duck:
         self.FlyingAway = False
         self.InDeath = True
         self.__deathTime = time.time()
+        
+    def gotAway(self):
+        self.InDeath = False
