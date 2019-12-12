@@ -21,6 +21,7 @@ import random
 import math
 import time
 import threading
+import copy
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 450
@@ -75,7 +76,7 @@ aim = Circle(Point(0, 0), aimRadius)
 innerAim = Circle(Point(0, 0), 5)
 #target = Image(Point(0, 0), ducks[duckIndex])
 #death = Image(Point(0, 0), deadDucks[duckIndex])
-message = Text(Point(300, 100), "")
+message = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
 scoreText = Text(Point(117, 30), "")
 roundText = Text(Point(SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), "")
 ducksMissedText = Text(Point(100, 150), "")
@@ -237,7 +238,7 @@ def BeginPeriod():
     ActiveDucks.clear()
     for i in range(NUM_DUCKS_PER_PERIOD):
         SpawnDuck(index)
-        indexKilledDucks.append(index)
+        indexKilledDucks.append([index, False])
         index += 1
         
     # spawn bullets
@@ -261,9 +262,9 @@ def PeriodCheck():
             isADuckActive = True
     if not isADuckActive and not lastPeriodSet:
         for duck in ActiveDucks:
-                if duck.isAlive():
-                    unDrawDuck.append(duck)
-                    FlyAway()
+            if duck.isAlive():
+                unDrawDuck.append(duck)
+                FlyAway()
         timeAtLastPeriod = time.time()
         currentPeriod += 1
         lastPeriodSet = True
@@ -307,6 +308,7 @@ def shoot(channel):
     global diffSelected
     global aimRadius
     global ActiveDucks
+    global indexKilledDucks
     
     if not playing:
         if menuSelection == 0:
@@ -330,6 +332,7 @@ def shoot(channel):
             diffSelected = True
             
     else:
+        killedDucks = 0
         if shotsTakenInPeriod < SHOTS_PER_PERIOD:
             aimCenter = aim.getCenter()
             stillSpawning = False
@@ -342,6 +345,8 @@ def shoot(channel):
                     target.killed()
                     roundScore += 1
                     totalScore += 1
+                    indexKilledDucks[killedDucks][1] = True
+                    killedDucks += 1
             if not stillSpawning:
                 shotsTakenInPeriod += 1
             
@@ -405,7 +410,7 @@ def main():
     backgroundImage = Image(Point((SCREEN_WIDTH / 2), SCREEN_HEIGHT / 2), background)
     backgroundImage.draw(win)
     
-    dog = Image(Point(centerX,centerY), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
+    dog = Image(Point(centerX,centerY + 50), "/home/ludwigg/Python/PyRpi_DuckHunt/dog.png")
     
     # Main Menu Setup
     menuButton = []
@@ -516,7 +521,6 @@ def main():
         
     message.setTextColor("white")
     message.setSize(20)
-    message.draw(win)
     
     roundText.setTextColor("white")
     roundText.setSize(20)
@@ -556,9 +560,11 @@ def main():
                 missedDuckDisplay[i][1].draw(win)
                 missedDuckDisplay[i][0] = True
         if ducksMissed >= 10:
-            message.setText("Game Over!")
-            #scoreText.setText("Final Score: " + str(totalScore))
             dog.draw(win)
+            message.draw(win)
+            message.setText("Game Over! \nFinal Score: " + str(totalScore))
+            #scoreText.setText("Final Score: " + str(totalScore))
+            
             playing = False
         elif timeRoundStart - time.time() > 0:
             if not roundDrawn:
@@ -603,23 +609,23 @@ def main():
                     bullets[-(i + 1)].undraw()
                 except:
                     None
-                
+            
             for unDraw in unDrawDuck:
                 try:
                     #duckCenter = unDraw.duckGraphic().getAnchor()
-                    if not unDraw.FlyingAway:
+                    if not unDraw.FlyingAway and not unDraw.isAlive():
                         unDraw.duckGraphic().undraw()
-                        if len(indexKilledDucks) > 0:
-                            duckDisplay[indexKilledDucks[0]].undraw()
-                            deadDuckDisplay[indexKilledDucks[0]].draw(win)
+                        if len(indexKilledDucks) > 0 and indexKilledDucks[0][1]:
+                            duckDisplay[indexKilledDucks[0][0]].undraw()
+                            deadDuckDisplay[indexKilledDucks[0][0]].draw(win)
                             del indexKilledDucks[0]
                     
                     elif unDraw.duckGraphic().getAnchor().y > SCREEN_HEIGHT + 20:
                         ducksMissed += 1
-                        unDraw.FlyingAway = False
+                        unDraw.killed()
                         unDraw.duckGraphic().undraw()
                     else:
-                        unDraw.duckGraphic().move(0, 8)
+                        unDraw.duckGraphic().move(0, 10)
                         CanClear = False
                 except:
                     None
@@ -673,7 +679,8 @@ def main():
         
         updateScore()
         update(60)
-    
+    if ducksMissed >= 10:
+        time.sleep(5)
     win.close()
 
 # Setup GPIO0
